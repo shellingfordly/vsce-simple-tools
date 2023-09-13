@@ -1,7 +1,7 @@
 {
-  "name": "vscode-extension",
-  "displayName": "vscode_extension",
-  "description": "",
+  "name": "simple-tools",
+  "displayName": "simple tools",
+  "description": "my some simple tools",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.82.0"
@@ -14,13 +14,13 @@
   "contributes": {
     "commands": [
       {
-        "command": "vscode_extension.showNowTime",
+        "command": "extension.showNowTime",
         "title": "Show Quick Pick"
       }
     ],
     "keybindings": [
       {
-        "command": "vscode_extension.showNowTime",
+        "command": "extension.showNowTime",
         "key": "ctrl+win+1",
         "mac": "cmd+ctrl+1",
         "when": "editorTextFocus"

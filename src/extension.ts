@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 const showNowTimeCommand = vscode.commands.registerCommand(
-  "vscode_extension.showNowTime",
+  "extension.showNowTime",
   () => {
     const date = new Date().toLocaleDateString();
     const time = new Date().toLocaleTimeString();
