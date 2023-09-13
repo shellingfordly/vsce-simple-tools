@@ -2,11 +2,19 @@
   "name": "simple-tools",
   "displayName": "simple tools",
   "description": "my some simple tools",
-  "version": "0.0.1",
+  "icon": "assets/logo.png",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.82.0"
   },
+  "author": {
+    "name": "shellingfordly",
+    "email": "shellingfordly@qq.com",
+    "url": "https://shellingfordly.github.io"
+  },
+  "publisher": "shellingfordly",
   "repository": {
+    "type": "git",
     "url": "https://github.com/shellingfordly/vsce-simple-tools"
   },
   "categories": [
