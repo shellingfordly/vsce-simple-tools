@@ -6,6 +6,9 @@
   "engines": {
     "vscode": "^1.82.0"
   },
+  "repository": {
+    "url": "https://github.com/shellingfordly/vsce-simple-tools"
+  },
   "categories": [
     "Other"
   ],
