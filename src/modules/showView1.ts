@@ -1,5 +1,13 @@
 import * as vscode from "vscode";
 
+const ClassReg = /class\s+([\w\d_]+)(?:\s+extends\s+([\w\d_]+))?/;
+const FuncReg = /function\s+([\w\d_]+)\s*\(/;
+const VarReg = /(const|var|let)\s+([\w\d_]+)(?=\s*=?[^=])/;
+const EnumReg = /enum\s+([\w\d_]+)\s*\{/;
+const TypeReg = /(interface|type)\s+([\w\d_]+)/;
+const AttrReg = /^\s*(?:(private|public|static|readonly)\s+)*\s*([\w]+)\s*[:=]\s*[^;]/;
+const ClassFuncReg = /\s*(private|public|static)?\s*(\w+)\s*\(([^)]*)\)\s*:\s*([^;]+)\s*{/;
+
 class MyTreeDataProvider implements vscode.TreeDataProvider<NodeTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<
     NodeTreeItem | undefined
@@ -37,63 +45,52 @@ class MyTreeDataProvider implements vscode.TreeDataProvider<NodeTreeItem> {
   }
 
   private parseDocument(document: vscode.TextDocument): NodeTreeItem[] {
-    const text = document.getText();
     const itemList: NodeTreeItem[] = [];
-    const methodStack: NodeTreeItem[] = [];
     let bracketCount = 0;
-    const lines = text.split("\n");
+    const stack: NodeTreeItem[] = [];
 
-    for (let i = 0; i < lines.length; i++) {
-      const txtLine = lines[i];
-
-      const funcReg = /function\s+(\w+)/g;
-      const funcMatch = funcReg.exec(txtLine);
-
-      const varReg = /(const|var|let)\s+(\w+)/g;
-      const varMatch = varReg.exec(txtLine);
-
-      var type = funcMatch ? NodeType.Func : NodeType.Var;
-
-      const match = funcMatch || varMatch;
-      if (match) {
-        const name = funcMatch ? match[1] : match[2];
-
-        const item = new NodeTreeItem({
-          name,
-          lineNumber: i,
-          type,
-          charIndex: 2,
-        });
-        item.iconPath = new vscode.ThemeIcon(type);
-
-        if (funcMatch) {
-          if (methodStack.length > 0) {
-            methodStack[methodStack.length - 1]?.addChild(item);
+    for (let index = 0; index < document.lineCount; index++) {
+      const text = document.lineAt(index).text;
+      const item = createNodeTreeItem(text, index);
+      if (item) {
+        if (item.type === NodeType.Var || item.type === NodeType.Attr) {
+          if (stack.length > 0) {
+            stack[stack.length - 1]?.addChild(item);
           } else {
             itemList.push(item);
           }
-          methodStack.push(item);
         } else {
-          if (methodStack.length > 0) {
-            methodStack[methodStack.length - 1]?.addChild(item);
+          if (stack.length > 0) {
+            stack[stack.length - 1]?.addChild(item);
           } else {
             itemList.push(item);
+          }
+          stack.push(item);
+        }
+      }
+
+      console.log("===========", index);
+      console.log(`name: ${item?.name}`);
+      console.log(`type: ${item?.type}`);
+      console.log(`text: ${text}`);
+      console.log(`stack: ${stack}`);
+      console.log("===========");
+
+      if (stack.length > 0) {
+        for (let j = 0; j < text.length; j++) {
+          if (text[j] === "{") {
+            bracketCount++;
+          } else if (text[j] === "}") {
+            bracketCount--;
           }
         }
       }
 
-      for (let j = 0; j < txtLine.length; j++) {
-        if (txtLine[j] === "{") {
-          bracketCount++;
-        } else if (txtLine[j] === "}") {
-          bracketCount--;
-        }
-      }
-
-      if (bracketCount === 0 && methodStack.length > 0) {
-        methodStack.pop();
+      if (bracketCount === 0 && stack.length > 0) {
+        stack.pop();
       }
     }
+
     return itemList;
   }
 
@@ -110,10 +107,14 @@ class MyTreeDataProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 }
 
 enum NodeType {
+  Empty = "empty",
   Func = "symbol-method",
-  Var = "symbol-constant",
+  Var = "symbol-variable",
   Enum = "symbol-enum",
-  Type = "symbol-enum",
+  Type = "symbol-value",
+  Class = "symbol-module",
+  Attr = "symbol-key",
+  Event = "symbol-event",
 }
 
 interface NodeItem {
@@ -124,20 +125,75 @@ interface NodeItem {
   children?: NodeTreeItem[];
 }
 
+function createNodeTreeItem(text: string, lineNumber: number) {
+  const type = ClassReg.test(text)
+    ? NodeType.Class
+    : FuncReg.test(text) || ClassFuncReg.test(text)
+    ? NodeType.Func
+    : VarReg.test(text)
+    ? NodeType.Var
+    : EnumReg.test(text)
+    ? NodeType.Enum
+    : TypeReg.test(text)
+    ? NodeType.Type
+    : AttrReg.test(text)
+    ? NodeType.Attr
+    : NodeType.Empty;
+
+  console.log(`***** ${lineNumber}, text : ${text}, type: ${type}`);
+
+  if (type === NodeType.Empty) return null;
+
+  let name = "";
+  switch (type) {
+    case NodeType.Class:
+      name = ClassReg.exec(text)![1];
+      break;
+    case NodeType.Func:
+      const funcMatch = FuncReg.exec(text);
+      const cFuncMatch = ClassFuncReg.exec(text);
+
+      name = funcMatch?.[1] || cFuncMatch?.[2] || "";
+      break;
+    case NodeType.Var:
+      name = VarReg.exec(text)![2];
+      break;
+    case NodeType.Attr:
+      name = AttrReg.exec(text)![2];
+      break;
+    case NodeType.Enum:
+      name = EnumReg.exec(text)![1];
+      break;
+    case NodeType.Type:
+      name = TypeReg.exec(text)![2];
+      break;
+  }
+  if (!name) return null;
+  return new NodeTreeItem({
+    name,
+    lineNumber,
+    charIndex: 1,
+    type,
+  });
+}
+
 class NodeTreeItem extends vscode.TreeItem {
   name: string;
   lineNumber: number = Math.floor(Math.random() * 100);
   children: NodeTreeItem[] = [];
+  type: NodeType = NodeType.Empty;
 
   constructor(config: NodeItem) {
     super(config.name);
-    if (config.type === NodeType.Func) {
+    if (config.type === NodeType.Func || config.type === NodeType.Class) {
       this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
     }
 
     this.name = config.name;
     this.lineNumber = config.lineNumber;
+    this.type = config.type;
     this.children = [];
+    this.iconPath = new vscode.ThemeIcon(config.type);
 
     this.command = {
       title: "Go to method",
@@ -171,12 +227,3 @@ vscode.commands.registerCommand(
     }
   }
 );
-
-vscode.commands.registerCommand("extension.showOutline", () => {
-  const activeEditor = vscode.window.activeTextEditor;
-  if (activeEditor) {
-    console.log("============================");
-    console.log(activeEditor.document);
-    console.log("============================");
-  }
-});
