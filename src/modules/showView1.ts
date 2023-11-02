@@ -46,52 +46,46 @@ class MyTreeDataProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 
   private parseDocument(document: vscode.TextDocument): NodeTreeItem[] {
     const itemList: NodeTreeItem[] = [];
-    let bracketCount = 0;
-    const stack: NodeTreeItem[] = [];
+    const spaceCount: number[] = [];
+    const itemStack: NodeTreeItem[] = [];
 
     for (let index = 0; index < document.lineCount; index++) {
       const text = document.lineAt(index).text;
       const item = createNodeTreeItem(text, index);
       if (item) {
         if (item.type === NodeType.Var || item.type === NodeType.Attr) {
-          if (stack.length > 0) {
-            stack[stack.length - 1]?.addChild(item);
+          if (itemStack.length > 0) {
+            itemStack[itemStack.length - 1]?.addChild(item);
           } else {
             itemList.push(item);
           }
         } else {
-          if (stack.length > 0) {
-            stack[stack.length - 1]?.addChild(item);
+          if (itemStack.length > 0) {
+            itemStack[itemStack.length - 1]?.addChild(item);
           } else {
             itemList.push(item);
           }
-          stack.push(item);
+          const count = text.match(/\S/)?.index || 0;
+          spaceCount.push(count);
+          itemStack.push(item);
         }
       }
 
-      console.log("===========", index);
-      console.log(`name: ${item?.name}`);
-      console.log(`type: ${item?.type}`);
-      console.log(`text: ${text}`);
-      console.log(`stack: ${stack}`);
-      console.log("===========");
-
-      if (stack.length > 0) {
-        for (let j = 0; j < text.length; j++) {
-          if (text[j] === "{") {
-            bracketCount++;
-          } else if (text[j] === "}") {
-            bracketCount--;
-          }
+      if (text.includes("}")) {
+        const count = text.match(/\S/)?.index || 0;
+        if (count === spaceCount[spaceCount.length - 1]) {
+          itemStack.pop();
+          spaceCount.pop();
         }
-      }
-
-      if (bracketCount === 0 && stack.length > 0) {
-        stack.pop();
       }
     }
 
-    return itemList;
+    return itemList.map((item) => {
+      if (item.children.length > 0) {
+        item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+      }
+      return item;
+    });
   }
 
   private onActiveTextEditorChanged(
@@ -108,13 +102,13 @@ class MyTreeDataProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 
 enum NodeType {
   Empty = "empty",
-  Func = "symbol-method",
   Var = "symbol-variable",
+  Attr = "symbol-key",
+
+  Func = "symbol-method",
   Enum = "symbol-enum",
   Type = "symbol-value",
   Class = "symbol-module",
-  Attr = "symbol-key",
-  Event = "symbol-event",
 }
 
 interface NodeItem {
@@ -139,8 +133,6 @@ function createNodeTreeItem(text: string, lineNumber: number) {
     : AttrReg.test(text)
     ? NodeType.Attr
     : NodeType.Empty;
-
-  console.log(`***** ${lineNumber}, text : ${text}, type: ${type}`);
 
   if (type === NodeType.Empty) return null;
 
@@ -178,21 +170,16 @@ function createNodeTreeItem(text: string, lineNumber: number) {
 }
 
 class NodeTreeItem extends vscode.TreeItem {
-  name: string;
+  name: string = "";
   lineNumber: number = Math.floor(Math.random() * 100);
   children: NodeTreeItem[] = [];
   type: NodeType = NodeType.Empty;
 
   constructor(config: NodeItem) {
     super(config.name);
-    if (config.type === NodeType.Func || config.type === NodeType.Class) {
-      this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-    }
-
     this.name = config.name;
     this.lineNumber = config.lineNumber;
     this.type = config.type;
-    this.children = [];
     this.iconPath = new vscode.ThemeIcon(config.type);
 
     this.command = {
