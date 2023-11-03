@@ -27,7 +27,7 @@
       "explorer": [
         {
           "id": "myTreeView",
-          "name": "My Tree View"
+          "name": "variable-tree"
         }
       ]
     },
