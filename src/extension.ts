@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { showNowTimeCommand } from "./modules/showNowTime";
-import { myTreeView } from "./modules/showView2";
+import { myTreeView } from "./modules/showView";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log(
