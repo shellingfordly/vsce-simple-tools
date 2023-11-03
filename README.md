@@ -9,10 +9,10 @@ my simple tools
 - win: ctrl+win+1
 - mac: cmd+ctrl+1
 
-![](https://github.com/shellingfordly/vsce-simple-tools/blob/main/assets/get_now_time.png)
+![](https://i0.imgs.ovh/2023/11/03/Zldt3.md.png)
 
 ## variable tree
 
 资源管理器中
 
-![](https://github.com/shellingfordly/vsce-simple-tools/blob/main/assets/variable_tree.png)
+![](https://i0.imgs.ovh/2023/11/03/Zl8N9.md.png)
