@@ -45,31 +45,31 @@ class MyTreeDataProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 
   private parseDocument(document: vscode.TextDocument): NodeTreeItem[] {
     const itemList: NodeTreeItem[] = [];
-    const spaceCount: number[] = [];
-    const itemStack: NodeTreeItem[] = [];
+    const tabCount: number[] = [];
+    const methodStack: NodeTreeItem[] = [];
 
     for (let index = 0; index < document.lineCount; index++) {
       const text = document.lineAt(index).text;
       const item = createNodeTreeItem(text, index);
       if (item) {
-        if (itemStack.length > 0) {
-          itemStack[itemStack.length - 1]?.addChild(item);
+        if (methodStack.length > 0) {
+          methodStack[methodStack.length - 1]?.addChild(item);
         } else {
           itemList.push(item);
         }
-        
+
         if (item.type !== NodeType.Variable) {
           const count = text.match(/\S/)?.index || 0;
-          spaceCount.push(count);
-          itemStack.push(item);
+          tabCount.push(count);
+          methodStack.push(item);
         }
       }
 
       if (text.includes("}")) {
         const count = text.match(/\S/)?.index || 0;
-        if (count === spaceCount[spaceCount.length - 1]) {
-          itemStack.pop();
-          spaceCount.pop();
+        if (count === tabCount[tabCount.length - 1]) {
+          methodStack.pop();
+          tabCount.pop();
         }
       }
     }
